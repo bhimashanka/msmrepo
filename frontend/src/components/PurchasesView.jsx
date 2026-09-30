@@ -2,21 +2,37 @@ import React, { useState, useEffect } from 'react';
 import { ShoppingBag, Plus, Search, Calendar, DollarSign, Package, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { fetchWithAuth } from '../api';
 
-const PurchasesView = ({ filters, currentUser, bases, equipmentTypes }) => {
+const PurchasesView = ({ filters, currentUser, bases = [], equipmentTypes = [] }) => {
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
-    base_id: currentUser?.role === 'base_commander' ? currentUser.base_id.toString() : bases[0]?.id.toString() || '1',
-    equipment_id: equipmentTypes[0]?.id.toString() || '1',
+    base_id: currentUser?.role === 'base_commander' ? currentUser.base_id?.toString() : bases[0]?.id?.toString() || '1',
+    equipment_id: equipmentTypes[0]?.id?.toString() || '1',
     quantity: 10,
     unit_cost: 500,
     supplier: 'Defense Logistics Agency',
     po_reference: `PO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
     purchase_date: new Date().toISOString().split('T')[0]
   });
+
+  // Sync selection when bases or equipmentTypes populate asynchronously
+  useEffect(() => {
+    if (bases.length > 0 && (!formData.base_id || !bases.some(b => b.id.toString() === formData.base_id))) {
+      setFormData(prev => ({
+        ...prev,
+        base_id: currentUser?.role === 'base_commander' ? currentUser.base_id?.toString() : bases[0].id.toString()
+      }));
+    }
+    if (equipmentTypes.length > 0 && (!formData.equipment_id || !equipmentTypes.some(eq => eq.id.toString() === formData.equipment_id))) {
+      setFormData(prev => ({
+        ...prev,
+        equipment_id: equipmentTypes[0].id.toString()
+      }));
+    }
+  }, [bases, equipmentTypes, currentUser]);
 
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
@@ -202,9 +218,13 @@ const PurchasesView = ({ filters, currentUser, bases, equipmentTypes }) => {
                   onChange={(e) => setFormData({ ...formData, base_id: e.target.value })}
                   className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 outline-none focus:border-emerald-500"
                 >
-                  {bases.map((b) => (
-                    <option key={b.id} value={b.id.toString()}>{b.name} ({b.code})</option>
-                  ))}
+                  {bases.length > 0 ? (
+                    bases.map((b) => (
+                      <option key={b.id} value={b.id.toString()}>{b.name} ({b.code})</option>
+                    ))
+                  ) : (
+                    <option value="">-- No Bases Available (Loading / Check DB) --</option>
+                  )}
                 </select>
               </div>
 
@@ -216,9 +236,13 @@ const PurchasesView = ({ filters, currentUser, bases, equipmentTypes }) => {
                   onChange={(e) => setFormData({ ...formData, equipment_id: e.target.value })}
                   className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 outline-none focus:border-emerald-500"
                 >
-                  {equipmentTypes.map((eq) => (
-                    <option key={eq.id} value={eq.id.toString()}>[{eq.category}] {eq.name}</option>
-                  ))}
+                  {equipmentTypes.length > 0 ? (
+                    equipmentTypes.map((eq) => (
+                      <option key={eq.id} value={eq.id.toString()}>[{eq.category}] {eq.name}</option>
+                    ))
+                  ) : (
+                    <option value="">-- No Equipment Items Available (Loading / Check DB) --</option>
+                  )}
                 </select>
               </div>
 

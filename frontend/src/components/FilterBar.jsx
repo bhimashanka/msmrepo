@@ -1,7 +1,7 @@
 import React from 'react';
 import { Filter, Calendar, MapPin, Package, RotateCcw, Lock } from 'lucide-react';
 
-const FilterBar = ({ filters, setFilters, bases, equipmentTypes, currentUser }) => {
+const FilterBar = ({ filters, setFilters, bases = [], equipmentTypes = [], currentUser }) => {
   const isBaseCommander = currentUser?.role === 'base_commander';
 
   const handleReset = () => {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { UserCheck, Flame, Plus, ShieldAlert, Lock, CheckCircle2, AlertCircle, X, RotateCcw } from 'lucide-react';
 import { fetchWithAuth } from '../api';
 
-const AssignmentsView = ({ filters, currentUser, bases, equipmentTypes }) => {
+const AssignmentsView = ({ filters, currentUser, bases = [], equipmentTypes = [] }) => {
   const isLogisticsOfficer = currentUser?.role === 'logistics_officer';
 
   const [activeTab, setActiveTab] = useState('assignments'); // 'assignments' or 'expenditures'
@@ -17,8 +17,8 @@ const AssignmentsView = ({ filters, currentUser, bases, equipmentTypes }) => {
 
   // Form State - Assignment
   const [assignForm, setAssignForm] = useState({
-    base_id: currentUser?.role === 'base_commander' ? currentUser.base_id.toString() : bases[0]?.id.toString() || '1',
-    equipment_id: equipmentTypes[0]?.id.toString() || '1',
+    base_id: currentUser?.role === 'base_commander' ? currentUser.base_id?.toString() : bases[0]?.id?.toString() || '1',
+    equipment_id: equipmentTypes[0]?.id?.toString() || '1',
     quantity: 1,
     personnel_name: 'Sgt. John Miller',
     personnel_rank: 'Staff Sergeant',
@@ -31,13 +31,26 @@ const AssignmentsView = ({ filters, currentUser, bases, equipmentTypes }) => {
 
   // Form State - Expenditure
   const [expendForm, setExpendForm] = useState({
-    base_id: currentUser?.role === 'base_commander' ? currentUser.base_id.toString() : bases[0]?.id.toString() || '1',
-    equipment_id: equipmentTypes[0]?.id.toString() || '5',
+    base_id: currentUser?.role === 'base_commander' ? currentUser.base_id?.toString() : bases[0]?.id?.toString() || '1',
+    equipment_id: equipmentTypes[0]?.id?.toString() || '5',
     quantity: 20,
     expenditure_date: new Date().toISOString().split('T')[0],
     reason: 'Live Fire Training',
     operation_name: 'Exercise Viper Shield'
   });
+
+  // Sync selection when bases or equipmentTypes populate asynchronously
+  useEffect(() => {
+    if (bases.length > 0) {
+      const defaultBase = currentUser?.role === 'base_commander' ? currentUser.base_id?.toString() : bases[0].id.toString();
+      setAssignForm(prev => ({ ...prev, base_id: prev.base_id || defaultBase }));
+      setExpendForm(prev => ({ ...prev, base_id: prev.base_id || defaultBase }));
+    }
+    if (equipmentTypes.length > 0) {
+      setAssignForm(prev => ({ ...prev, equipment_id: prev.equipment_id || equipmentTypes[0].id.toString() }));
+      setExpendForm(prev => ({ ...prev, equipment_id: prev.equipment_id || equipmentTypes[0].id.toString() }));
+    }
+  }, [bases, equipmentTypes, currentUser]);
 
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
@@ -413,9 +426,13 @@ const AssignmentsView = ({ filters, currentUser, bases, equipmentTypes }) => {
                     onChange={(e) => setAssignForm({ ...assignForm, base_id: e.target.value })}
                     className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 outline-none focus:border-blue-500"
                   >
-                    {bases.map((b) => (
-                      <option key={b.id} value={b.id.toString()}>{b.name}</option>
-                    ))}
+                    {bases.length > 0 ? (
+                      bases.map((b) => (
+                        <option key={b.id} value={b.id.toString()}>{b.name}</option>
+                      ))
+                    ) : (
+                      <option value="">-- No Bases Available (Loading / Check DB) --</option>
+                    )}
                   </select>
                 </div>
                 <div>
@@ -425,9 +442,13 @@ const AssignmentsView = ({ filters, currentUser, bases, equipmentTypes }) => {
                     onChange={(e) => setAssignForm({ ...assignForm, equipment_id: e.target.value })}
                     className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 outline-none focus:border-blue-500"
                   >
-                    {equipmentTypes.map((eq) => (
-                      <option key={eq.id} value={eq.id.toString()}>[{eq.category}] {eq.name}</option>
-                    ))}
+                    {equipmentTypes.length > 0 ? (
+                      equipmentTypes.map((eq) => (
+                        <option key={eq.id} value={eq.id.toString()}>[{eq.category}] {eq.name}</option>
+                      ))
+                    ) : (
+                      <option value="">-- No Equipment Items Available (Loading / Check DB) --</option>
+                    )}
                   </select>
                 </div>
               </div>
@@ -503,9 +524,13 @@ const AssignmentsView = ({ filters, currentUser, bases, equipmentTypes }) => {
                     onChange={(e) => setExpendForm({ ...expendForm, base_id: e.target.value })}
                     className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 outline-none focus:border-red-500"
                   >
-                    {bases.map((b) => (
-                      <option key={b.id} value={b.id.toString()}>{b.name}</option>
-                    ))}
+                    {bases.length > 0 ? (
+                      bases.map((b) => (
+                        <option key={b.id} value={b.id.toString()}>{b.name}</option>
+                      ))
+                    ) : (
+                      <option value="">-- No Bases Available (Loading / Check DB) --</option>
+                    )}
                   </select>
                 </div>
                 <div>
@@ -515,9 +540,13 @@ const AssignmentsView = ({ filters, currentUser, bases, equipmentTypes }) => {
                     onChange={(e) => setExpendForm({ ...expendForm, equipment_id: e.target.value })}
                     className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 outline-none focus:border-red-500"
                   >
-                    {equipmentTypes.map((eq) => (
-                      <option key={eq.id} value={eq.id.toString()}>[{eq.category}] {eq.name}</option>
-                    ))}
+                    {equipmentTypes.length > 0 ? (
+                      equipmentTypes.map((eq) => (
+                        <option key={eq.id} value={eq.id.toString()}>[{eq.category}] {eq.name}</option>
+                      ))
+                    ) : (
+                      <option value="">-- No Equipment Items Available (Loading / Check DB) --</option>
+                    )}
                   </select>
                 </div>
               </div>

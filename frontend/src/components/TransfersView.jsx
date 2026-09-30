@@ -2,22 +2,39 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeftRight, Plus, CheckCircle2, AlertCircle, Clock, Truck, ShieldAlert, X } from 'lucide-react';
 import { fetchWithAuth } from '../api';
 
-const TransfersView = ({ filters, currentUser, bases, equipmentTypes }) => {
+const TransfersView = ({ filters, currentUser, bases = [], equipmentTypes = [] }) => {
   const [transfers, setTransfers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
-    source_base_id: currentUser?.role === 'base_commander' ? currentUser.base_id.toString() : bases[0]?.id.toString() || '1',
-    dest_base_id: bases[1]?.id.toString() || '2',
-    equipment_id: equipmentTypes[0]?.id.toString() || '1',
+    source_base_id: currentUser?.role === 'base_commander' ? currentUser.base_id?.toString() : bases[0]?.id?.toString() || '1',
+    dest_base_id: bases[1]?.id?.toString() || '2',
+    equipment_id: equipmentTypes[0]?.id?.toString() || '1',
     quantity: 5,
     transfer_date: new Date().toISOString().split('T')[0],
     tracking_number: `TR-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
     status: 'Completed', // 'Pending', 'In-Transit', 'Completed'
     notes: 'Tactical relocation requested by regional command'
   });
+
+  // Sync selection when bases or equipmentTypes populate asynchronously
+  useEffect(() => {
+    if (bases.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        source_base_id: prev.source_base_id || (currentUser?.role === 'base_commander' ? currentUser.base_id?.toString() : bases[0].id.toString()),
+        dest_base_id: prev.dest_base_id || (bases[1]?.id || bases[0].id).toString()
+      }));
+    }
+    if (equipmentTypes.length > 0 && !formData.equipment_id) {
+      setFormData(prev => ({
+        ...prev,
+        equipment_id: equipmentTypes[0].id.toString()
+      }));
+    }
+  }, [bases, equipmentTypes, currentUser]);
 
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
@@ -219,9 +236,13 @@ const TransfersView = ({ filters, currentUser, bases, equipmentTypes }) => {
                   onChange={(e) => setFormData({ ...formData, source_base_id: e.target.value })}
                   className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 outline-none focus:border-cyan-500"
                 >
-                  {bases.map((b) => (
-                    <option key={b.id} value={b.id.toString()}>{b.name} ({b.code})</option>
-                  ))}
+                  {bases.length > 0 ? (
+                    bases.map((b) => (
+                      <option key={b.id} value={b.id.toString()}>{b.name} ({b.code})</option>
+                    ))
+                  ) : (
+                    <option value="">-- No Bases Available (Loading / Check DB) --</option>
+                  )}
                 </select>
               </div>
 
@@ -233,9 +254,13 @@ const TransfersView = ({ filters, currentUser, bases, equipmentTypes }) => {
                   onChange={(e) => setFormData({ ...formData, dest_base_id: e.target.value })}
                   className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 outline-none focus:border-cyan-500"
                 >
-                  {bases.map((b) => (
-                    <option key={b.id} value={b.id.toString()}>{b.name} ({b.code})</option>
-                  ))}
+                  {bases.length > 0 ? (
+                    bases.map((b) => (
+                      <option key={b.id} value={b.id.toString()}>{b.name} ({b.code})</option>
+                    ))
+                  ) : (
+                    <option value="">-- No Bases Available (Loading / Check DB) --</option>
+                  )}
                 </select>
               </div>
 
@@ -247,9 +272,13 @@ const TransfersView = ({ filters, currentUser, bases, equipmentTypes }) => {
                   onChange={(e) => setFormData({ ...formData, equipment_id: e.target.value })}
                   className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 outline-none focus:border-cyan-500"
                 >
-                  {equipmentTypes.map((eq) => (
-                    <option key={eq.id} value={eq.id.toString()}>[{eq.category}] {eq.name}</option>
-                  ))}
+                  {equipmentTypes.length > 0 ? (
+                    equipmentTypes.map((eq) => (
+                      <option key={eq.id} value={eq.id.toString()}>[{eq.category}] {eq.name}</option>
+                    ))
+                  ) : (
+                    <option value="">-- No Equipment Items Available (Loading / Check DB) --</option>
+                  )}
                 </select>
               </div>
 
