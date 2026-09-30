@@ -32,12 +32,19 @@ function convertSqlToPg(sql) {
   return sql.replace(/\?/g, () => `$${paramIndex++}`);
 }
 
+const checkDbAvailable = () => {
+  if (!isPg && !db) {
+    throw new Error('Database connection uninitialized. Please add DATABASE_URL environment variable in Render dashboard with your Aiven PostgreSQL URL.');
+  }
+};
+
 // Helper functions for promise-based queries
 const runAsync = (sql, params = []) => {
   if (isPg) {
     const pgSql = convertSqlToPg(sql);
     return pool.query(pgSql, params);
   }
+  checkDbAvailable();
   return new Promise((resolve, reject) => {
     db.run(sql, params, function (err) {
       if (err) reject(err);
@@ -51,6 +58,7 @@ const allAsync = (sql, params = []) => {
     const pgSql = convertSqlToPg(sql);
     return pool.query(pgSql, params).then(res => res.rows);
   }
+  checkDbAvailable();
   return new Promise((resolve, reject) => {
     db.all(sql, params, (err, rows) => {
       if (err) reject(err);
@@ -64,6 +72,7 @@ const getAsync = (sql, params = []) => {
     const pgSql = convertSqlToPg(sql);
     return pool.query(pgSql, params).then(res => res.rows[0] || null);
   }
+  checkDbAvailable();
   return new Promise((resolve, reject) => {
     db.get(sql, params, (err, row) => {
       if (err) reject(err);
@@ -215,6 +224,10 @@ async function initPgDatabase() {
 }
 
 async function initSqliteDatabase() {
+  if (!db) {
+    console.warn('[DB Engine] Local SQLite is disabled/unavailable. Please configure DATABASE_URL in Render environment variables to connect to Aiven PostgreSQL.');
+    return;
+  }
   db.serialize(async () => {
     db.run('PRAGMA foreign_keys = ON;');
 
