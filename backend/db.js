@@ -15,10 +15,15 @@ if (isPg) {
   });
   console.log('[DB Engine] Connected using PostgreSQL (Aiven / Cloud DB)');
 } else {
-  const sqlite3 = require('sqlite3').verbose();
-  const dbPath = path.join(__dirname, 'mams_military.db');
-  db = new sqlite3.Database(dbPath);
-  console.log('[DB Engine] Connected using local SQLite3 database');
+  try {
+    const sqlite3 = require('sqlite3').verbose();
+    const dbPath = path.join(__dirname, 'mams_military.db');
+    db = new sqlite3.Database(dbPath);
+    console.log('[DB Engine] Connected using local SQLite3 database');
+  } catch (err) {
+    console.warn('[DB Engine Warning] SQLite3 native module could not be loaded:', err.message);
+    console.warn('[DB Engine Warning] Please ensure DATABASE_URL is set in environment variables to use PostgreSQL (Aiven).');
+  }
 }
 
 // Convert SQLite parameter placeholders (?) to PG ($1, $2, ...)
