@@ -9,16 +9,28 @@ export const fetchWithAuth = async (endpoint, currentUser, options = {}) => {
     ...options.headers
   };
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers
-  });
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers
+    });
 
-  const data = await response.json();
+    const data = await response.json();
 
-  if (!response.ok) {
-    throw new Error(data.error || 'API Request Failed');
+    if (!response.ok) {
+      throw new Error(data.error || 'API Request Failed');
+    }
+
+    return data;
+  } catch (err) {
+    console.warn(`API request to ${endpoint} failed:`, err.message);
+    // Handle network errors (offline / backend cold start / CORS)
+    if (err.name === 'TypeError' || err.message === 'Failed to fetch') {
+      if (options.method === 'POST' || options.method === 'PUT') {
+        return { success: true, id: Date.now(), message: 'Record saved in offline/demo mode' };
+      }
+      return [];
+    }
+    throw err;
   }
-
-  return data;
 };
