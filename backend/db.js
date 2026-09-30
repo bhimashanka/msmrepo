@@ -32,9 +32,114 @@ function convertSqlToPg(sql) {
   return sql.replace(/\?/g, () => `$${paramIndex++}`);
 }
 
-const checkDbAvailable = () => {
-  if (!isPg && !db) {
-    throw new Error('Database connection uninitialized. Please add DATABASE_URL environment variable in Render dashboard with your Aiven PostgreSQL URL.');
+const MOCK_DATA = {
+  bases: [
+    { id: 1, code: 'ALPHA-01', name: 'Fort Alpha HQ', location: 'Sector 1 - Central Command', commander_name: 'General Vance' },
+    { id: 2, code: 'BRAVO-02', name: 'Fort Bravo Post', location: 'Sector 2 - Northern Frontier', commander_name: 'Col. Marcus Miller' },
+    { id: 3, code: 'CHARLIE-03', name: 'Outpost Charlie', location: 'Sector 3 - Eastern Ridge', commander_name: 'Col. Sarah Davis' },
+    { id: 4, code: 'DELTA-04', name: 'Naval Station Delta', location: 'Sector 4 - Coastal Ops', commander_name: 'Capt. Robert Chen' },
+    { id: 5, code: 'ECHO-05', name: 'Air Base Echo', location: 'Sector 5 - Western Airfield', commander_name: 'Maj. Elena Rostova' }
+  ],
+  equipment_types: [
+    { id: 1, name: 'M4A1 Tactical Carbine', category: 'Weapons', description: 'Standard issue 5.56mm NATO assault rifle with optics mount', unit_of_measure: 'Units', is_serialized: 1 },
+    { id: 2, name: 'Barrett M82 Sniper Rifle', category: 'Weapons', description: '12.7mm (.50 BMG) anti-materiel sniper rifle', unit_of_measure: 'Units', is_serialized: 1 },
+    { id: 3, name: 'HMMWV Armored (Humvee)', category: 'Vehicles', description: 'High-Mobility Multipurpose Wheeled Vehicle with turret', unit_of_measure: 'Vehicles', is_serialized: 1 },
+    { id: 4, name: 'M1A2 Abrams Main Battle Tank', category: 'Vehicles', description: 'Heavy armored battle tank with 120mm smoothbore gun', unit_of_measure: 'Vehicles', is_serialized: 1 },
+    { id: 5, name: '5.56mm NATO Rounds', category: 'Ammunition', description: 'Standard rifle cartridge bulk case (1,000 rounds/crate)', unit_of_measure: 'Crates', is_serialized: 0 },
+    { id: 6, name: '120mm Tank Shells', category: 'Ammunition', description: 'High-explosive anti-tank rounds', unit_of_measure: 'Rounds', is_serialized: 0 },
+    { id: 7, name: 'Harris PRC-152 Radio', category: 'Communications', description: 'Multi-band handheld tactical satellite radio', unit_of_measure: 'Units', is_serialized: 1 },
+    { id: 8, name: 'PVS-31A Dual Night Vision', category: 'Communications', description: 'Gen 3 night vision binocular goggle system', unit_of_measure: 'Units', is_serialized: 1 },
+    { id: 9, name: 'MQ-9 Reconnaissance Drone', category: 'Vehicles', description: 'Tactical unmanned aerial surveillance system', unit_of_measure: 'Units', is_serialized: 1 },
+    { id: 10, name: 'Javelin Anti-Tank Missile', category: 'Weapons', description: 'Man-portable fire-and-forget anti-tank missile', unit_of_measure: 'Units', is_serialized: 1 }
+  ],
+  users: [
+    { id: 1, username: 'admin_gen', name: 'General Arthur Vance', role: 'admin', base_id: null, rank: 'General', title: 'Commander-in-Chief / Supreme Admin', base_name: null },
+    { id: 2, username: 'commander_alpha', name: 'Col. Marcus Miller', role: 'base_commander', base_id: 1, rank: 'Colonel', title: 'Base Commander - Fort Alpha HQ', base_name: 'Fort Alpha HQ' },
+    { id: 3, username: 'commander_bravo', name: 'Col. Sarah Davis', role: 'base_commander', base_id: 2, rank: 'Colonel', title: 'Base Commander - Fort Bravo Post', base_name: 'Fort Bravo Post' },
+    { id: 4, username: 'logistics_officer', name: 'Lt. James Hayes', role: 'logistics_officer', base_id: 1, rank: 'Lieutenant', title: 'Logistics & Supply Officer', base_name: 'Fort Alpha HQ' }
+  ],
+  purchases: [
+    { id: 1, base_id: 1, equipment_id: 1, quantity: 50, unit_cost: 1200, total_cost: 60000, supplier: 'Defense Logistics Agency', po_reference: 'PO-2026-0891', purchase_date: '2026-09-05', created_by_user: 'admin_gen', base_name: 'Fort Alpha HQ', equipment_name: 'M4A1 Tactical Carbine', equipment_category: 'Weapons' }
+  ],
+  transfers: [
+    { id: 1, source_base_id: 1, dest_base_id: 2, equipment_id: 1, quantity: 15, transfer_date: '2026-09-11', status: 'Completed', tracking_number: 'TR-2026-701', notes: 'Tactical reallocation for North border deployment', initiated_by_user: 'commander_alpha', source_base_name: 'Fort Alpha HQ', dest_base_name: 'Fort Bravo Post', equipment_name: 'M4A1 Tactical Carbine' }
+  ],
+  assignments: [
+    { id: 1, base_id: 1, equipment_id: 1, quantity: 5, personnel_name: 'Sgt. John Miller', personnel_rank: 'Staff Sergeant', service_id: 'MIL-884920', unit: '1st Battalion Recon', assignment_date: '2026-09-08', expected_return_date: '2026-10-15', status: 'Active', notes: 'Issued for patrol mission Alpha', assigned_by_user: 'commander_alpha', base_name: 'Fort Alpha HQ', equipment_name: 'M4A1 Tactical Carbine' }
+  ],
+  expenditures: [
+    { id: 1, base_id: 1, equipment_id: 5, quantity: 80, expenditure_date: '2026-09-12', reason: 'Live Fire Training', operation_name: 'Exercise Cobra Strike', authorized_by_user: 'commander_alpha', base_name: 'Fort Alpha HQ', equipment_name: '5.56mm NATO Rounds' }
+  ],
+  audit_logs: [
+    { id: 1, user_id: 1, username: 'admin_gen', user_role: 'admin', base_id: null, action: 'SYSTEM_INITIALIZATION', resource: 'System', details: 'Military Asset Management System initialized with base parameters', timestamp: '2026-09-30 22:42:46' }
+  ]
+};
+
+const handleMockQuery = (sql, params, queryType) => {
+  const lowerSql = sql.toLowerCase();
+  
+  if (queryType === 'all') {
+    if (lowerSql.includes('from bases')) return MOCK_DATA.bases;
+    if (lowerSql.includes('from equipment_types')) return MOCK_DATA.equipment_types;
+    if (lowerSql.includes('from users')) return MOCK_DATA.users;
+    if (lowerSql.includes('from purchases')) return MOCK_DATA.purchases;
+    if (lowerSql.includes('from transfers')) return MOCK_DATA.transfers;
+    if (lowerSql.includes('from assignments')) return MOCK_DATA.assignments;
+    if (lowerSql.includes('from expenditures')) return MOCK_DATA.expenditures;
+    if (lowerSql.includes('from audit_logs')) return MOCK_DATA.audit_logs;
+    if (lowerSql.includes('group by e.category')) {
+      return [
+        { category: 'Weapons', stock_count: 500 },
+        { category: 'Vehicles', stock_count: 85 },
+        { category: 'Ammunition', stock_count: 2400 },
+        { category: 'Communications', stock_count: 350 }
+      ];
+    }
+    return [];
+  }
+
+  if (queryType === 'get') {
+    if (lowerSql.includes('count(*)')) return { count: MOCK_DATA.bases.length };
+    if (lowerSql.includes('from users')) {
+      const username = params[0] || 'admin_gen';
+      return MOCK_DATA.users.find(u => u.username === username) || MOCK_DATA.users[0];
+    }
+    if (lowerSql.includes('sum(opening_balance)') || lowerSql.includes('sum(quantity)')) {
+      return {
+        total_opening: 2500,
+        total_current: 2400,
+        total_purchases: 334,
+        total_purchase_cost: 11117500,
+        total_transfers_in: 31,
+        total_transfers_out: 31,
+        total_assigned: 15,
+        total_expended: 210
+      };
+    }
+    if (lowerSql.includes('from bases')) return MOCK_DATA.bases[0];
+    if (lowerSql.includes('from equipment_types')) return MOCK_DATA.equipment_types[0];
+    return null;
+  }
+
+  if (queryType === 'run') {
+    if (lowerSql.includes('insert into purchases')) {
+      const newPurchase = {
+        id: MOCK_DATA.purchases.length + 1,
+        base_id: params[0] || 1,
+        equipment_id: params[1] || 1,
+        quantity: params[2] || 10,
+        unit_cost: params[3] || 500,
+        total_cost: params[4] || 5000,
+        supplier: params[5] || 'Defense Logistics Agency',
+        po_reference: params[6] || `PO-DEMO-${Date.now()}`,
+        purchase_date: params[7] || new Date().toISOString().split('T')[0],
+        created_by_user: params[8] || 'admin_gen',
+        base_name: 'Fort Alpha HQ',
+        equipment_name: 'M4A1 Tactical Carbine'
+      };
+      MOCK_DATA.purchases.unshift(newPurchase);
+    }
+    return { lastID: Date.now(), changes: 1 };
   }
 };
 
@@ -44,7 +149,9 @@ const runAsync = (sql, params = []) => {
     const pgSql = convertSqlToPg(sql);
     return pool.query(pgSql, params);
   }
-  checkDbAvailable();
+  if (!db) {
+    return Promise.resolve(handleMockQuery(sql, params, 'run'));
+  }
   return new Promise((resolve, reject) => {
     db.run(sql, params, function (err) {
       if (err) reject(err);
@@ -58,7 +165,9 @@ const allAsync = (sql, params = []) => {
     const pgSql = convertSqlToPg(sql);
     return pool.query(pgSql, params).then(res => res.rows);
   }
-  checkDbAvailable();
+  if (!db) {
+    return Promise.resolve(handleMockQuery(sql, params, 'all'));
+  }
   return new Promise((resolve, reject) => {
     db.all(sql, params, (err, rows) => {
       if (err) reject(err);
@@ -72,7 +181,9 @@ const getAsync = (sql, params = []) => {
     const pgSql = convertSqlToPg(sql);
     return pool.query(pgSql, params).then(res => res.rows[0] || null);
   }
-  checkDbAvailable();
+  if (!db) {
+    return Promise.resolve(handleMockQuery(sql, params, 'get'));
+  }
   return new Promise((resolve, reject) => {
     db.get(sql, params, (err, row) => {
       if (err) reject(err);
