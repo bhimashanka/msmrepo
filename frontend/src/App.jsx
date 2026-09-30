@@ -8,14 +8,42 @@ import AssignmentsView from './components/AssignmentsView';
 import AuditTrailView from './components/AuditTrailView';
 import { fetchWithAuth } from './api';
 
+const DEFAULT_BASES = [
+  { id: 1, code: 'ALPHA-01', name: 'Fort Alpha HQ', location: 'Sector 1 - Central Command', commander_name: 'General Vance' },
+  { id: 2, code: 'BRAVO-02', name: 'Fort Bravo Post', location: 'Sector 2 - Northern Frontier', commander_name: 'Col. Marcus Miller' },
+  { id: 3, code: 'CHARLIE-03', name: 'Outpost Charlie', location: 'Sector 3 - Eastern Ridge', commander_name: 'Col. Sarah Davis' },
+  { id: 4, code: 'DELTA-04', name: 'Naval Station Delta', location: 'Sector 4 - Coastal Ops', commander_name: 'Capt. Robert Chen' },
+  { id: 5, code: 'ECHO-05', name: 'Air Base Echo', location: 'Sector 5 - Western Airfield', commander_name: 'Maj. Elena Rostova' }
+];
+
+const DEFAULT_EQUIPMENT = [
+  { id: 1, name: 'M4A1 Tactical Carbine', category: 'Weapons', description: 'Standard issue 5.56mm NATO assault rifle', unit_of_measure: 'Units', is_serialized: 1 },
+  { id: 2, name: 'Barrett M82 Sniper Rifle', category: 'Weapons', description: '12.7mm (.50 BMG) anti-materiel sniper rifle', unit_of_measure: 'Units', is_serialized: 1 },
+  { id: 3, name: 'HMMWV Armored (Humvee)', category: 'Vehicles', description: 'High-Mobility Multipurpose Wheeled Vehicle', unit_of_measure: 'Vehicles', is_serialized: 1 },
+  { id: 4, name: 'M1A2 Abrams Main Battle Tank', category: 'Vehicles', description: 'Heavy armored battle tank', unit_of_measure: 'Vehicles', is_serialized: 1 },
+  { id: 5, name: '5.56mm NATO Rounds', category: 'Ammunition', description: 'Standard rifle cartridge bulk case', unit_of_measure: 'Crates', is_serialized: 0 },
+  { id: 6, name: '120mm Tank Shells', category: 'Ammunition', description: 'High-explosive anti-tank rounds', unit_of_measure: 'Rounds', is_serialized: 0 },
+  { id: 7, name: 'Harris PRC-152 Radio', category: 'Communications', description: 'Multi-band handheld tactical radio', unit_of_measure: 'Units', is_serialized: 1 },
+  { id: 8, name: 'PVS-31A Dual Night Vision', category: 'Communications', description: 'Gen 3 night vision binocular goggle', unit_of_measure: 'Units', is_serialized: 1 },
+  { id: 9, name: 'MQ-9 Reconnaissance Drone', category: 'Vehicles', description: 'Tactical unmanned aerial surveillance system', unit_of_measure: 'Units', is_serialized: 1 },
+  { id: 10, name: 'Javelin Anti-Tank Missile', category: 'Weapons', description: 'Man-portable fire-and-forget missile', unit_of_measure: 'Units', is_serialized: 1 }
+];
+
+const DEFAULT_USERS = [
+  { id: 1, username: 'admin_gen', name: 'General Arthur Vance', role: 'admin', base_id: null, rank: 'General', title: 'Commander-in-Chief / Supreme Admin' },
+  { id: 2, username: 'commander_alpha', name: 'Col. Marcus Miller', role: 'base_commander', base_id: 1, rank: 'Colonel', title: 'Base Commander - Fort Alpha HQ' },
+  { id: 3, username: 'commander_bravo', name: 'Col. Sarah Davis', role: 'base_commander', base_id: 2, rank: 'Colonel', title: 'Base Commander - Fort Bravo Post' },
+  { id: 4, username: 'logistics_officer', name: 'Lt. James Hayes', role: 'logistics_officer', base_id: 1, rank: 'Lieutenant', title: 'Logistics & Supply Officer' }
+];
+
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   
   // Data lists
-  const [users, setUsers] = useState([]);
-  const [bases, setBases] = useState([]);
-  const [equipmentTypes, setEquipmentTypes] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
+  const [users, setUsers] = useState(DEFAULT_USERS);
+  const [bases, setBases] = useState(DEFAULT_BASES);
+  const [equipmentTypes, setEquipmentTypes] = useState(DEFAULT_EQUIPMENT);
+  const [currentUser, setCurrentUser] = useState(DEFAULT_USERS[0]);
 
   // Global Filters State
   const [filters, setFilters] = useState({
@@ -34,23 +62,27 @@ function App() {
   const initApp = async () => {
     try {
       setLoading(true);
-      // Fetch initial metadata
+      // Fetch initial metadata safely with catch blocks
       const [usersData, basesData, equipData] = await Promise.all([
-        fetchWithAuth('/users'),
-        fetchWithAuth('/bases'),
-        fetchWithAuth('/equipment-types')
+        fetchWithAuth('/users').catch(() => []),
+        fetchWithAuth('/bases').catch(() => []),
+        fetchWithAuth('/equipment-types').catch(() => [])
       ]);
 
-      setUsers(usersData);
-      setBases(basesData);
-      setEquipmentTypes(equipData);
+      const finalUsers = Array.isArray(usersData) && usersData.length > 0 ? usersData : DEFAULT_USERS;
+      const finalBases = Array.isArray(basesData) && basesData.length > 0 ? basesData : DEFAULT_BASES;
+      const finalEquip = Array.isArray(equipData) && equipData.length > 0 ? equipData : DEFAULT_EQUIPMENT;
 
-      // Default active user is Admin (General Vance)
-      if (usersData.length > 0) {
-        setCurrentUser(usersData[0]);
-      }
+      setUsers(finalUsers);
+      setBases(finalBases);
+      setEquipmentTypes(finalEquip);
+      setCurrentUser(finalUsers[0]);
     } catch (err) {
-      console.error('Initialization error:', err);
+      console.error('Initialization error, utilizing default military assets:', err);
+      setUsers(DEFAULT_USERS);
+      setBases(DEFAULT_BASES);
+      setEquipmentTypes(DEFAULT_EQUIPMENT);
+      setCurrentUser(DEFAULT_USERS[0]);
     } finally {
       setLoading(false);
     }
