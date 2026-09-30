@@ -10,10 +10,20 @@ if (isPg) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
   const { Pool } = require('pg');
   const connectionString = process.env.DATABASE_URL || process.env.AIVEN_DB_URL;
-  pool = new Pool({
+
+  const poolConfig = connectionString ? {
     connectionString,
     ssl: { rejectUnauthorized: false }
-  });
+  } : {
+    host: process.env.PGHOST,
+    user: process.env.PGUSER,
+    password: process.env.PGPASSWORD,
+    database: process.env.PGDATABASE || 'defaultdb',
+    port: parseInt(process.env.PGPORT || '15365'),
+    ssl: { rejectUnauthorized: false }
+  };
+
+  pool = new Pool(poolConfig);
   console.log('[DB Engine] Connected using PostgreSQL (Aiven / Cloud DB)');
 } else {
   try {
