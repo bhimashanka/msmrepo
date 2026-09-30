@@ -119,4 +119,35 @@ router.post('/', authenticateUser, authorizeRoles('admin', 'base_commander', 'lo
   }
 });
 
+// DELETE /api/purchases/:id - Remove a purchase record
+router.delete('/:id', authenticateUser, authorizeRoles('admin', 'base_commander', 'logistics_officer'), async (req, res) => {
+  try {
+    const purchase = await getAsync('SELECT * FROM purchases WHERE id = ?', [req.params.id]);
+    if (!purchase) return res.status(404).json({ error: 'Purchase record not found' });
+
+    // RBAC Check for Base Commander
+    if (req.user.role === 'base_commander' && parseInt(purchase.base_id) !== parseInt(req.user.base_id)) {
+      return res.status(403).json({ error: 'Base Commanders can only delete purchases for their assigned base.' });
+    }
+
+    // Delete purchase
+    await runAsync('DELETE FROM purchases WHERE id = ?', [req.params.id]);
+
+    // Adjust inventory stock back
+    await runAsync('UPDATE inventory SET current_stock = MAX(0, current_stock - ?) WHERE base_id = ? AND equipment_id = ?', [purchase.quantity, purchase.base_id, purchase.equipment_id]);
+
+    // Log Audit
+    await logTransaction(req, 'PURCHASE_DELETED', 'Purchases', {
+      purchase_id: req.params.id,
+      po_reference: purchase.po_reference,
+      quantity: purchase.quantity
+    });
+
+    res.json({ message: 'Purchase record deleted successfully' });
+  } catch (err) {
+    console.error('Delete purchase error:', err);
+    res.status(500).json({ error: 'Failed to delete purchase', details: err.message });
+  }
+});
+
 module.exports = router;

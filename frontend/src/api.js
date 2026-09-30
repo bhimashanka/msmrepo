@@ -31,8 +31,8 @@ export const fetchWithAuth = async (endpoint, currentUser, options = {}) => {
     console.warn(`API request to ${endpoint} failed:`, err.message);
     // Handle network errors (offline / backend cold start / CORS)
     if (err.name === 'TypeError' || err.message === 'Failed to fetch') {
-      if (options.method === 'POST' || options.method === 'PUT') {
-        return { success: true, id: Date.now(), message: 'Record saved in offline/demo mode' };
+      if (options.method === 'POST' || options.method === 'PUT' || options.method === 'DELETE' || options.method === 'PATCH') {
+        return { success: true, id: Date.now(), message: 'Record processed in offline/demo mode' };
       }
       return [];
     }

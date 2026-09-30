@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeftRight, Plus, CheckCircle2, AlertCircle, Clock, Truck, ShieldAlert, X } from 'lucide-react';
+import { ArrowLeftRight, Plus, CheckCircle2, AlertCircle, Clock, Truck, ShieldAlert, X, Trash2 } from 'lucide-react';
 import { fetchWithAuth } from '../api';
 
 const DEFAULT_BASES = [
@@ -83,6 +83,16 @@ const TransfersView = ({ filters, currentUser, bases = [], equipmentTypes = [] }
       console.error('Failed to load transfers:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteTransfer = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this transfer record?')) return;
+    try {
+      await fetchWithAuth(`/transfers/${id}`, currentUser, { method: 'DELETE' });
+      setTransfers(prev => prev.filter(t => t.id !== id));
+    } catch (err) {
+      alert(err.message || 'Failed to delete transfer record');
     }
   };
 
@@ -205,7 +215,7 @@ const TransfersView = ({ filters, currentUser, bases = [], equipmentTypes = [] }
                     </td>
                     <td className="py-3 px-4 text-right font-mono font-bold text-cyan-300">{t.quantity}</td>
                     <td className="py-3 px-4">{getStatusBadge(t.status)}</td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 flex items-center gap-2">
                       {t.status !== 'Completed' && (
                         <button
                           onClick={() => handleUpdateStatus(t.id, 'Completed')}
@@ -214,6 +224,13 @@ const TransfersView = ({ filters, currentUser, bases = [], equipmentTypes = [] }
                           Mark Received
                         </button>
                       )}
+                      <button
+                        onClick={() => handleDeleteTransfer(t.id)}
+                        className="p-1 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                        title="Delete Record"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Plus, Search, Calendar, DollarSign, Package, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { ShoppingBag, Plus, Search, Calendar, DollarSign, Package, CheckCircle2, AlertCircle, X, Trash2 } from 'lucide-react';
 import { fetchWithAuth } from '../api';
 
 const DEFAULT_BASES = [
@@ -81,6 +81,16 @@ const PurchasesView = ({ filters, currentUser, bases = [], equipmentTypes = [] }
       console.error('Failed to load purchases:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeletePurchase = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this purchase record?')) return;
+    try {
+      await fetchWithAuth(`/purchases/${id}`, currentUser, { method: 'DELETE' });
+      setPurchases(prev => prev.filter(p => p.id !== id));
+    } catch (err) {
+      alert(err.message || 'Failed to delete purchase record');
     }
   };
 
@@ -180,6 +190,7 @@ const PurchasesView = ({ filters, currentUser, bases = [], equipmentTypes = [] }
                   <th className="py-3 px-4 text-right">Total Cost</th>
                   <th className="py-3 px-4">Supplier</th>
                   <th className="py-3 px-4">Recorded By</th>
+                  <th className="py-3 px-4 text-center">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
@@ -197,6 +208,15 @@ const PurchasesView = ({ filters, currentUser, bases = [], equipmentTypes = [] }
                     <td className="py-3 px-4 text-right font-mono font-bold text-slate-100">${p.total_cost.toLocaleString()}</td>
                     <td className="py-3 px-4 text-slate-300">{p.supplier}</td>
                     <td className="py-3 px-4 text-slate-400 font-mono text-[11px]">{p.created_by_user}</td>
+                    <td className="py-3 px-4 text-center">
+                      <button
+                        onClick={() => handleDeletePurchase(p.id)}
+                        className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                        title="Delete Record"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

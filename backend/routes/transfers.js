@@ -171,4 +171,28 @@ router.patch('/:id/status', authenticateUser, authorizeRoles('admin', 'base_comm
   }
 });
 
+// DELETE /api/transfers/:id - Delete transfer order
+router.delete('/:id', authenticateUser, authorizeRoles('admin', 'base_commander', 'logistics_officer'), async (req, res) => {
+  try {
+    const transfer = await getAsync('SELECT * FROM transfers WHERE id = ?', [req.params.id]);
+    if (!transfer) return res.status(404).json({ error: 'Transfer record not found' });
+
+    if (req.user.role === 'base_commander' && parseInt(transfer.source_base_id) !== parseInt(req.user.base_id) && parseInt(transfer.dest_base_id) !== parseInt(req.user.base_id)) {
+      return res.status(403).json({ error: 'Base Commanders can only delete transfers involving their assigned base.' });
+    }
+
+    await runAsync('DELETE FROM transfers WHERE id = ?', [req.params.id]);
+
+    await logTransaction(req, 'TRANSFER_DELETED', 'Transfers', {
+      transfer_id: req.params.id,
+      tracking_number: transfer.tracking_number
+    });
+
+    res.json({ message: 'Transfer record deleted successfully' });
+  } catch (err) {
+    console.error('Delete transfer error:', err);
+    res.status(500).json({ error: 'Failed to delete transfer', details: err.message });
+  }
+});
+
 module.exports = router;

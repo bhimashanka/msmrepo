@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserCheck, Flame, Plus, ShieldAlert, Lock, CheckCircle2, AlertCircle, X, RotateCcw } from 'lucide-react';
+import { UserCheck, Flame, Plus, ShieldAlert, Lock, CheckCircle2, AlertCircle, X, RotateCcw, Trash2 } from 'lucide-react';
 import { fetchWithAuth } from '../api';
 
 const DEFAULT_BASES = [
@@ -172,6 +172,26 @@ const AssignmentsView = ({ filters, currentUser, bases = [], equipmentTypes = []
     }
   };
 
+  const handleDeleteAssignment = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this assignment record?')) return;
+    try {
+      await fetchWithAuth(`/assignments/${id}`, currentUser, { method: 'DELETE' });
+      setAssignments(prev => prev.filter(a => a.id !== id));
+    } catch (err) {
+      alert(err.message || 'Failed to delete assignment record');
+    }
+  };
+
+  const handleDeleteExpenditure = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this expenditure record?')) return;
+    try {
+      await fetchWithAuth(`/expenditures/${id}`, currentUser, { method: 'DELETE' });
+      setExpenditures(prev => prev.filter(ex => ex.id !== id));
+    } catch (err) {
+      alert(err.message || 'Failed to delete expenditure record');
+    }
+  };
+
   // RBAC Restricted Screen for Logistics Officer
   if (isLogisticsOfficer) {
     return (
@@ -300,7 +320,7 @@ const AssignmentsView = ({ filters, currentUser, bases = [], equipmentTypes = []
                           {a.status}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-4 flex items-center gap-2">
                         {a.status === 'Active' && (
                           <button
                             onClick={() => handleReturnAsset(a.id)}
@@ -309,6 +329,13 @@ const AssignmentsView = ({ filters, currentUser, bases = [], equipmentTypes = []
                             <RotateCcw className="w-3 h-3 text-emerald-400" /> Return
                           </button>
                         )}
+                        <button
+                          onClick={() => handleDeleteAssignment(a.id)}
+                          className="p-1 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                          title="Delete Record"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -343,6 +370,7 @@ const AssignmentsView = ({ filters, currentUser, bases = [], equipmentTypes = []
                     <th className="py-3 px-4">Reason</th>
                     <th className="py-3 px-4">Operation / Exercise</th>
                     <th className="py-3 px-4">Authorized By</th>
+                    <th className="py-3 px-4 text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
@@ -359,6 +387,15 @@ const AssignmentsView = ({ filters, currentUser, bases = [], equipmentTypes = []
                       </td>
                       <td className="py-3 px-4 text-slate-300 font-mono text-[11px]">{ex.operation_name}</td>
                       <td className="py-3 px-4 text-slate-400 font-mono text-[11px]">{ex.authorized_by_user}</td>
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          onClick={() => handleDeleteExpenditure(ex.id)}
+                          className="p-1 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                          title="Delete Record"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

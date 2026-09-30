@@ -229,4 +229,52 @@ router.post('/expenditures', authenticateUser, authorizeRoles('admin', 'base_com
   }
 });
 
+// DELETE /api/assignments/:id - Remove assignment record
+router.delete('/assignments/:id', authenticateUser, authorizeRoles('admin', 'base_commander'), async (req, res) => {
+  try {
+    const assignment = await getAsync('SELECT * FROM assignments WHERE id = ?', [req.params.id]);
+    if (!assignment) return res.status(404).json({ error: 'Assignment record not found' });
+
+    if (req.user.role === 'base_commander' && parseInt(assignment.base_id) !== parseInt(req.user.base_id)) {
+      return res.status(403).json({ error: 'Base Commanders can only delete assignments for their assigned base.' });
+    }
+
+    await runAsync('DELETE FROM assignments WHERE id = ?', [req.params.id]);
+
+    await logTransaction(req, 'ASSIGNMENT_DELETED', 'Assignments', {
+      assignment_id: req.params.id,
+      personnel_name: assignment.personnel_name
+    });
+
+    res.json({ message: 'Assignment record deleted successfully' });
+  } catch (err) {
+    console.error('Delete assignment error:', err);
+    res.status(500).json({ error: 'Failed to delete assignment', details: err.message });
+  }
+});
+
+// DELETE /api/expenditures/:id - Remove expenditure record
+router.delete('/expenditures/:id', authenticateUser, authorizeRoles('admin', 'base_commander'), async (req, res) => {
+  try {
+    const expenditure = await getAsync('SELECT * FROM expenditures WHERE id = ?', [req.params.id]);
+    if (!expenditure) return res.status(404).json({ error: 'Expenditure record not found' });
+
+    if (req.user.role === 'base_commander' && parseInt(expenditure.base_id) !== parseInt(req.user.base_id)) {
+      return res.status(403).json({ error: 'Base Commanders can only delete expenditures for their assigned base.' });
+    }
+
+    await runAsync('DELETE FROM expenditures WHERE id = ?', [req.params.id]);
+
+    await logTransaction(req, 'EXPENDITURE_DELETED', 'Expenditures', {
+      expenditure_id: req.params.id,
+      operation_name: expenditure.operation_name
+    });
+
+    res.json({ message: 'Expenditure record deleted successfully' });
+  } catch (err) {
+    console.error('Delete expenditure error:', err);
+    res.status(500).json({ error: 'Failed to delete expenditure', details: err.message });
+  }
+});
+
 module.exports = router;
