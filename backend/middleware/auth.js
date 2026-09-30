@@ -6,13 +6,11 @@ const { getAsync } = require('../db');
 // 'logistics_officer': Access to Purchases and Transfers only
 
 const authenticateUser = async (req, res, next) => {
-  try {
-    // Standard header check or demo headers
-    const roleHeader = req.headers['x-user-role'] || 'admin';
-    const usernameHeader = req.headers['x-user-username'] || 'admin_gen';
-    const baseIdHeader = req.headers['x-user-base-id'] ? parseInt(req.headers['x-user-base-id']) : null;
+  const roleHeader = req.headers['x-user-role'] || 'admin';
+  const usernameHeader = req.headers['x-user-username'] || 'admin_gen';
+  const baseIdHeader = req.headers['x-user-base-id'] ? parseInt(req.headers['x-user-base-id']) : null;
 
-    // Fetch user from DB if possible or construct user object
+  try {
     const userInDb = await getAsync('SELECT * FROM users WHERE username = ?', [usernameHeader]);
 
     if (userInDb) {
@@ -25,23 +23,23 @@ const authenticateUser = async (req, res, next) => {
         rank: userInDb.rank,
         title: userInDb.title
       };
-    } else {
-      req.user = {
-        id: 1,
-        username: usernameHeader,
-        name: 'General Arthur Vance',
-        role: roleHeader,
-        base_id: baseIdHeader,
-        rank: 'General',
-        title: 'Command Staff'
-      };
+      return next();
     }
-
-    next();
   } catch (err) {
-    console.error('Auth middleware error:', err);
-    return res.status(401).json({ error: 'Authentication failed' });
+    console.warn('[Auth Middleware Warning] User lookup failed, using fallback credentials:', err.message);
   }
+
+  req.user = {
+    id: 1,
+    username: usernameHeader,
+    name: 'General Arthur Vance',
+    role: roleHeader,
+    base_id: baseIdHeader,
+    rank: 'General',
+    title: 'Command Staff'
+  };
+
+  next();
 };
 
 // Middleware to enforce specific roles
