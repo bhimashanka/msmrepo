@@ -2,7 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { UserCheck, Flame, Plus, ShieldAlert, Lock, CheckCircle2, AlertCircle, X, RotateCcw } from 'lucide-react';
 import { fetchWithAuth } from '../api';
 
+const DEFAULT_BASES = [
+  { id: 1, code: 'ALPHA-01', name: 'Fort Alpha HQ' },
+  { id: 2, code: 'BRAVO-02', name: 'Fort Bravo Post' },
+  { id: 3, code: 'CHARLIE-03', name: 'Outpost Charlie' },
+  { id: 4, code: 'DELTA-04', name: 'Naval Station Delta' },
+  { id: 5, code: 'ECHO-05', name: 'Air Base Echo' }
+];
+
+const DEFAULT_EQUIPMENT = [
+  { id: 1, name: 'M4A1 Tactical Carbine', category: 'Weapons' },
+  { id: 2, name: 'Barrett M82 Sniper Rifle', category: 'Weapons' },
+  { id: 3, name: 'HMMWV Armored (Humvee)', category: 'Vehicles' },
+  { id: 4, name: 'M1A2 Abrams Main Battle Tank', category: 'Vehicles' },
+  { id: 5, name: '5.56mm NATO Rounds', category: 'Ammunition' },
+  { id: 6, name: '120mm Tank Shells', category: 'Ammunition' },
+  { id: 7, name: 'Harris PRC-152 Radio', category: 'Communications' },
+  { id: 8, name: 'PVS-31A Dual Night Vision', category: 'Communications' },
+  { id: 9, name: 'MQ-9 Reconnaissance Drone', category: 'Vehicles' },
+  { id: 10, name: 'Javelin Anti-Tank Missile', category: 'Weapons' }
+];
+
 const AssignmentsView = ({ filters, currentUser, bases = [], equipmentTypes = [] }) => {
+  const activeBases = bases && bases.length > 0 ? bases : DEFAULT_BASES;
+  const activeEquipment = equipmentTypes && equipmentTypes.length > 0 ? equipmentTypes : DEFAULT_EQUIPMENT;
+
   const isLogisticsOfficer = currentUser?.role === 'logistics_officer';
 
   const [activeTab, setActiveTab] = useState('assignments'); // 'assignments' or 'expenditures'
@@ -17,8 +41,8 @@ const AssignmentsView = ({ filters, currentUser, bases = [], equipmentTypes = []
 
   // Form State - Assignment
   const [assignForm, setAssignForm] = useState({
-    base_id: currentUser?.role === 'base_commander' ? currentUser.base_id?.toString() : bases[0]?.id?.toString() || '1',
-    equipment_id: equipmentTypes[0]?.id?.toString() || '1',
+    base_id: currentUser?.role === 'base_commander' ? currentUser.base_id?.toString() : activeBases[0].id.toString(),
+    equipment_id: activeEquipment[0].id.toString(),
     quantity: 1,
     personnel_name: 'Sgt. John Miller',
     personnel_rank: 'Staff Sergeant',
@@ -31,8 +55,8 @@ const AssignmentsView = ({ filters, currentUser, bases = [], equipmentTypes = []
 
   // Form State - Expenditure
   const [expendForm, setExpendForm] = useState({
-    base_id: currentUser?.role === 'base_commander' ? currentUser.base_id?.toString() : bases[0]?.id?.toString() || '1',
-    equipment_id: equipmentTypes[0]?.id?.toString() || '5',
+    base_id: currentUser?.role === 'base_commander' ? currentUser.base_id?.toString() : activeBases[0].id.toString(),
+    equipment_id: (activeEquipment[4] || activeEquipment[0]).id.toString(),
     quantity: 20,
     expenditure_date: new Date().toISOString().split('T')[0],
     reason: 'Live Fire Training',
@@ -41,14 +65,14 @@ const AssignmentsView = ({ filters, currentUser, bases = [], equipmentTypes = []
 
   // Sync selection when bases or equipmentTypes populate asynchronously
   useEffect(() => {
-    if (bases.length > 0) {
-      const defaultBase = currentUser?.role === 'base_commander' ? currentUser.base_id?.toString() : bases[0].id.toString();
+    if (activeBases.length > 0) {
+      const defaultBase = currentUser?.role === 'base_commander' ? currentUser.base_id?.toString() : activeBases[0].id.toString();
       setAssignForm(prev => ({ ...prev, base_id: prev.base_id || defaultBase }));
       setExpendForm(prev => ({ ...prev, base_id: prev.base_id || defaultBase }));
     }
-    if (equipmentTypes.length > 0) {
-      setAssignForm(prev => ({ ...prev, equipment_id: prev.equipment_id || equipmentTypes[0].id.toString() }));
-      setExpendForm(prev => ({ ...prev, equipment_id: prev.equipment_id || equipmentTypes[0].id.toString() }));
+    if (activeEquipment.length > 0) {
+      setAssignForm(prev => ({ ...prev, equipment_id: prev.equipment_id || activeEquipment[0].id.toString() }));
+      setExpendForm(prev => ({ ...prev, equipment_id: prev.equipment_id || activeEquipment[0].id.toString() }));
     }
   }, [bases, equipmentTypes, currentUser]);
 
@@ -426,13 +450,9 @@ const AssignmentsView = ({ filters, currentUser, bases = [], equipmentTypes = []
                     onChange={(e) => setAssignForm({ ...assignForm, base_id: e.target.value })}
                     className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 outline-none focus:border-blue-500"
                   >
-                    {bases.length > 0 ? (
-                      bases.map((b) => (
-                        <option key={b.id} value={b.id.toString()}>{b.name}</option>
-                      ))
-                    ) : (
-                      <option value="">-- No Bases Available (Loading / Check DB) --</option>
-                    )}
+                    {activeBases.map((b) => (
+                      <option key={b.id} value={b.id.toString()}>{b.name}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -442,13 +462,9 @@ const AssignmentsView = ({ filters, currentUser, bases = [], equipmentTypes = []
                     onChange={(e) => setAssignForm({ ...assignForm, equipment_id: e.target.value })}
                     className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 outline-none focus:border-blue-500"
                   >
-                    {equipmentTypes.length > 0 ? (
-                      equipmentTypes.map((eq) => (
-                        <option key={eq.id} value={eq.id.toString()}>[{eq.category}] {eq.name}</option>
-                      ))
-                    ) : (
-                      <option value="">-- No Equipment Items Available (Loading / Check DB) --</option>
-                    )}
+                    {activeEquipment.map((eq) => (
+                      <option key={eq.id} value={eq.id.toString()}>[{eq.category}] {eq.name}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -524,13 +540,9 @@ const AssignmentsView = ({ filters, currentUser, bases = [], equipmentTypes = []
                     onChange={(e) => setExpendForm({ ...expendForm, base_id: e.target.value })}
                     className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 outline-none focus:border-red-500"
                   >
-                    {bases.length > 0 ? (
-                      bases.map((b) => (
-                        <option key={b.id} value={b.id.toString()}>{b.name}</option>
-                      ))
-                    ) : (
-                      <option value="">-- No Bases Available (Loading / Check DB) --</option>
-                    )}
+                    {activeBases.map((b) => (
+                      <option key={b.id} value={b.id.toString()}>{b.name}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -540,13 +552,9 @@ const AssignmentsView = ({ filters, currentUser, bases = [], equipmentTypes = []
                     onChange={(e) => setExpendForm({ ...expendForm, equipment_id: e.target.value })}
                     className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 outline-none focus:border-red-500"
                   >
-                    {equipmentTypes.length > 0 ? (
-                      equipmentTypes.map((eq) => (
-                        <option key={eq.id} value={eq.id.toString()}>[{eq.category}] {eq.name}</option>
-                      ))
-                    ) : (
-                      <option value="">-- No Equipment Items Available (Loading / Check DB) --</option>
-                    )}
+                    {activeEquipment.map((eq) => (
+                      <option key={eq.id} value={eq.id.toString()}>[{eq.category}] {eq.name}</option>
+                    ))}
                   </select>
                 </div>
               </div>

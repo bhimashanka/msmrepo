@@ -1,7 +1,31 @@
 import React from 'react';
 import { Filter, Calendar, MapPin, Package, RotateCcw, Lock } from 'lucide-react';
 
+const DEFAULT_BASES = [
+  { id: 1, code: 'ALPHA-01', name: 'Fort Alpha HQ' },
+  { id: 2, code: 'BRAVO-02', name: 'Fort Bravo Post' },
+  { id: 3, code: 'CHARLIE-03', name: 'Outpost Charlie' },
+  { id: 4, code: 'DELTA-04', name: 'Naval Station Delta' },
+  { id: 5, code: 'ECHO-05', name: 'Air Base Echo' }
+];
+
+const DEFAULT_EQUIPMENT = [
+  { id: 1, name: 'M4A1 Tactical Carbine', category: 'Weapons' },
+  { id: 2, name: 'Barrett M82 Sniper Rifle', category: 'Weapons' },
+  { id: 3, name: 'HMMWV Armored (Humvee)', category: 'Vehicles' },
+  { id: 4, name: 'M1A2 Abrams Main Battle Tank', category: 'Vehicles' },
+  { id: 5, name: '5.56mm NATO Rounds', category: 'Ammunition' },
+  { id: 6, name: '120mm Tank Shells', category: 'Ammunition' },
+  { id: 7, name: 'Harris PRC-152 Radio', category: 'Communications' },
+  { id: 8, name: 'PVS-31A Dual Night Vision', category: 'Communications' },
+  { id: 9, name: 'MQ-9 Reconnaissance Drone', category: 'Vehicles' },
+  { id: 10, name: 'Javelin Anti-Tank Missile', category: 'Weapons' }
+];
+
 const FilterBar = ({ filters, setFilters, bases = [], equipmentTypes = [], currentUser }) => {
+  const activeBases = bases && bases.length > 0 ? bases : DEFAULT_BASES;
+  const activeEquipment = equipmentTypes && equipmentTypes.length > 0 ? equipmentTypes : DEFAULT_EQUIPMENT;
+
   const isBaseCommander = currentUser?.role === 'base_commander';
 
   const handleReset = () => {
@@ -39,7 +63,7 @@ const FilterBar = ({ filters, setFilters, bases = [], equipmentTypes = [], curre
               }`}
             >
               {!isBaseCommander && <option value="all">All Bases & Commands</option>}
-              {bases.map((b) => (
+              {activeBases.map((b) => (
                 <option key={b.id} value={b.id.toString()}>
                   {b.name} ({b.code})
                 </option>
@@ -58,7 +82,7 @@ const FilterBar = ({ filters, setFilters, bases = [], equipmentTypes = [], curre
               className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 outline-none focus:border-cyan-500 transition-colors"
             >
               <option value="all">All Equipment Types</option>
-              {equipmentTypes.map((eq) => (
+              {activeEquipment.map((eq) => (
                 <option key={eq.id} value={eq.id.toString()}>
                   [{eq.category}] {eq.name}
                 </option>

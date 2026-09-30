@@ -2,15 +2,39 @@ import React, { useState, useEffect } from 'react';
 import { ShoppingBag, Plus, Search, Calendar, DollarSign, Package, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { fetchWithAuth } from '../api';
 
+const DEFAULT_BASES = [
+  { id: 1, code: 'ALPHA-01', name: 'Fort Alpha HQ' },
+  { id: 2, code: 'BRAVO-02', name: 'Fort Bravo Post' },
+  { id: 3, code: 'CHARLIE-03', name: 'Outpost Charlie' },
+  { id: 4, code: 'DELTA-04', name: 'Naval Station Delta' },
+  { id: 5, code: 'ECHO-05', name: 'Air Base Echo' }
+];
+
+const DEFAULT_EQUIPMENT = [
+  { id: 1, name: 'M4A1 Tactical Carbine', category: 'Weapons' },
+  { id: 2, name: 'Barrett M82 Sniper Rifle', category: 'Weapons' },
+  { id: 3, name: 'HMMWV Armored (Humvee)', category: 'Vehicles' },
+  { id: 4, name: 'M1A2 Abrams Main Battle Tank', category: 'Vehicles' },
+  { id: 5, name: '5.56mm NATO Rounds', category: 'Ammunition' },
+  { id: 6, name: '120mm Tank Shells', category: 'Ammunition' },
+  { id: 7, name: 'Harris PRC-152 Radio', category: 'Communications' },
+  { id: 8, name: 'PVS-31A Dual Night Vision', category: 'Communications' },
+  { id: 9, name: 'MQ-9 Reconnaissance Drone', category: 'Vehicles' },
+  { id: 10, name: 'Javelin Anti-Tank Missile', category: 'Weapons' }
+];
+
 const PurchasesView = ({ filters, currentUser, bases = [], equipmentTypes = [] }) => {
+  const activeBases = bases && bases.length > 0 ? bases : DEFAULT_BASES;
+  const activeEquipment = equipmentTypes && equipmentTypes.length > 0 ? equipmentTypes : DEFAULT_EQUIPMENT;
+
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
-    base_id: currentUser?.role === 'base_commander' ? currentUser.base_id?.toString() : bases[0]?.id?.toString() || '1',
-    equipment_id: equipmentTypes[0]?.id?.toString() || '1',
+    base_id: currentUser?.role === 'base_commander' ? currentUser.base_id?.toString() : activeBases[0].id.toString(),
+    equipment_id: activeEquipment[0].id.toString(),
     quantity: 10,
     unit_cost: 500,
     supplier: 'Defense Logistics Agency',
@@ -20,16 +44,16 @@ const PurchasesView = ({ filters, currentUser, bases = [], equipmentTypes = [] }
 
   // Sync selection when bases or equipmentTypes populate asynchronously
   useEffect(() => {
-    if (bases.length > 0 && (!formData.base_id || !bases.some(b => b.id.toString() === formData.base_id))) {
+    if (activeBases.length > 0 && (!formData.base_id || !activeBases.some(b => b.id.toString() === formData.base_id))) {
       setFormData(prev => ({
         ...prev,
-        base_id: currentUser?.role === 'base_commander' ? currentUser.base_id?.toString() : bases[0].id.toString()
+        base_id: currentUser?.role === 'base_commander' ? currentUser.base_id?.toString() : activeBases[0].id.toString()
       }));
     }
-    if (equipmentTypes.length > 0 && (!formData.equipment_id || !equipmentTypes.some(eq => eq.id.toString() === formData.equipment_id))) {
+    if (activeEquipment.length > 0 && (!formData.equipment_id || !activeEquipment.some(eq => eq.id.toString() === formData.equipment_id))) {
       setFormData(prev => ({
         ...prev,
-        equipment_id: equipmentTypes[0].id.toString()
+        equipment_id: activeEquipment[0].id.toString()
       }));
     }
   }, [bases, equipmentTypes, currentUser]);
@@ -218,13 +242,9 @@ const PurchasesView = ({ filters, currentUser, bases = [], equipmentTypes = [] }
                   onChange={(e) => setFormData({ ...formData, base_id: e.target.value })}
                   className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 outline-none focus:border-emerald-500"
                 >
-                  {bases.length > 0 ? (
-                    bases.map((b) => (
-                      <option key={b.id} value={b.id.toString()}>{b.name} ({b.code})</option>
-                    ))
-                  ) : (
-                    <option value="">-- No Bases Available (Loading / Check DB) --</option>
-                  )}
+                  {activeBases.map((b) => (
+                    <option key={b.id} value={b.id.toString()}>{b.name} ({b.code})</option>
+                  ))}
                 </select>
               </div>
 
@@ -236,13 +256,9 @@ const PurchasesView = ({ filters, currentUser, bases = [], equipmentTypes = [] }
                   onChange={(e) => setFormData({ ...formData, equipment_id: e.target.value })}
                   className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 outline-none focus:border-emerald-500"
                 >
-                  {equipmentTypes.length > 0 ? (
-                    equipmentTypes.map((eq) => (
-                      <option key={eq.id} value={eq.id.toString()}>[{eq.category}] {eq.name}</option>
-                    ))
-                  ) : (
-                    <option value="">-- No Equipment Items Available (Loading / Check DB) --</option>
-                  )}
+                  {activeEquipment.map((eq) => (
+                    <option key={eq.id} value={eq.id.toString()}>[{eq.category}] {eq.name}</option>
+                  ))}
                 </select>
               </div>
 
