@@ -7,11 +7,12 @@ const isPg = !!(process.env.DATABASE_URL || process.env.AIVEN_DB_URL || process.
 let db, pool;
 
 if (isPg) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
   const { Pool } = require('pg');
   const connectionString = process.env.DATABASE_URL || process.env.AIVEN_DB_URL;
   pool = new Pool({
     connectionString,
-    ssl: process.env.DB_SSL === 'false' ? false : { rejectUnauthorized: false }
+    ssl: { rejectUnauthorized: false }
   });
   console.log('[DB Engine] Connected using PostgreSQL (Aiven / Cloud DB)');
 } else {
